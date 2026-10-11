@@ -1,275 +1,255 @@
-import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import ProductCard from "../components/ProductCard";
 
-const productsData = [
-  {
-    id: "air-max-1",
-    name: "Air Max 1",
-    price: 459,
-    category: "Shoes",
-    gender: "Men",
-    description: "Classic everyday sneakers with modern comfort.",
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900",
-    stock: 10,
-  },
-  {
-    id: "air-runner",
-    name: "Air Runner",
-    price: 399,
-    category: "Shoes",
-    gender: "Men",
-    description: "Lightweight running shoes built for performance.",
-    image:
-      "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=900",
-    stock: 8,
-  },
-  {
-    id: "street-shoe",
-    name: "Street Essential",
-    price: 329,
-    category: "Shoes",
-    gender: "Women",
-    description: "Modern lifestyle sneakers for everyday movement.",
-    image:
-      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=900",
-    stock: 12,
-  },
-  {
-    id: "essential-hoodie",
-    name: "Essential Hoodie",
-    price: 249,
-    category: "Clothing",
-    gender: "Unisex",
-    description: "Premium heavyweight hoodie for everyday wear.",
-    image:
-      "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=900",
-    stock: 15,
-  },
-  {
-    id: "sport-tshirt",
-    name: "Dri-FIT Sport T-Shirt",
-    price: 149,
-    category: "Clothing",
-    gender: "Men",
-    description: "Breathable performance t-shirt for training.",
-    image:
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=900",
-    stock: 20,
-  },
-  {
-    id: "women-top",
-    name: "Training Top",
-    price: 179,
-    category: "Clothing",
-    gender: "Women",
-    description: "Lightweight training top with a comfortable fit.",
-    image:
-      "https://images.unsplash.com/photo-1506629905607-d9c297d4e7c8?w=900",
-    stock: 9,
-  },
-  {
-    id: "kids-runner",
-    name: "Kids Runner",
-    price: 279,
-    category: "Shoes",
-    gender: "Kids",
-    description: "Comfortable running shoes for active kids.",
-    image:
-      "https://images.unsplash.com/photo-1514989940723-e8e51635b782?w=900",
-    stock: 7,
-  },
-  {
-    id: "training-pants",
-    name: "Training Pants",
-    price: 199,
-    category: "Clothing",
-    gender: "Unisex",
-    description: "Flexible training pants for everyday movement.",
-    image:
-      "https://images.unsplash.com/photo-1552902865-b72c031ac5ea?w=900",
-    stock: 18,
-  },
-];
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../redux/cartSlice";
 
-function Products() {
-  const [searchParams] = useSearchParams();
+const API_URL = "https://sport-plus-1.onrender.com/api";
 
-  const category = searchParams.get("category");
-  const searchQuery = searchParams.get("search");
 
-  const [selectedCategory, setSelectedCategory] = useState(
-    category || "All"
-  );
+function ProductDetails() {
+  const { id } = useParams();
+  const dispatch = useDispatch();
 
-  const [sort, setSort] = useState("default");
+  const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
 
-  const filteredProducts = useMemo(() => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    let result = [...productsData];
+  // =========================
+  // GET PRODUCT FROM BACKEND
+  // =========================
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-    if (selectedCategory !== "All") {
-      result = result.filter(
-        (product) =>
-          product.gender === selectedCategory ||
-          product.category === selectedCategory
-      );
+        const response = await fetch(
+          `${API_URL}/products/${id}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Product not found");
+        }
+
+        const data = await response.json();
+
+        setProduct(data);
+      } catch (error) {
+        console.error("Product details error:", error);
+        setError("Product not found");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  // =========================
+  // LOADING
+  // =========================
+  if (loading) {
+    return (
+      <main className="not-found-page">
+        <h1>Loading product...</h1>
+        <p>Please wait.</p>
+      </main>
+    );
+  }
+
+  // =========================
+  // ERROR
+  // =========================
+  if (error || !product) {
+    return (
+      <main className="not-found-page">
+        <h1>Product not found</h1>
+
+        <p>
+          The product you're looking for doesn't exist.
+        </p>
+
+        <Link to="/products">
+          ← Back to products
+        </Link>
+      </main>
+    );
+  }
+
+  // =========================
+  // QUANTITY
+  // =========================
+  const increaseQuantity = () => {
+    if (quantity < product.stock) {
+      setQuantity((prev) => prev + 1);
     }
+  };
 
-    if (searchQuery) {
-      const search = searchQuery.toLowerCase();
-
-      result = result.filter(
-        (product) =>
-          product.name.toLowerCase().includes(search) ||
-          product.category.toLowerCase().includes(search) ||
-          product.gender.toLowerCase().includes(search)
-      );
+  const decreaseQuantity = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
     }
+  };
 
-    if (sort === "price-low") {
-      result.sort((a, b) => a.price - b.price);
-    }
-
-    if (sort === "price-high") {
-      result.sort((a, b) => b.price - a.price);
-    }
-
-    if (sort === "name") {
-      result.sort((a, b) =>
-        a.name.localeCompare(b.name)
-      );
-    }
-
-    return result;
-
-  }, [selectedCategory, searchQuery, sort]);
+  // =========================
+  // ADD TO CART
+  // =========================
+  const handleAddToCart = () => {
+    dispatch(
+      addToCart({
+        ...product,
+        id: product._id,
+        quantity,
+      })
+    );
+  };
 
   return (
-    <main className="products-page">
+    <main className="product-details-page">
+      <div className="product-details-container">
 
-      {/* HEADER */}
-      <section className="products-header">
+        {/* PRODUCT IMAGE */}
 
-        <div>
+        <div className="product-details-image">
+          <img
+            src={product.image}
+            alt={product.name}
+          />
+        </div>
 
-          <span>
-            COLLECTION
+        {/* PRODUCT INFORMATION */}
+
+        <div className="product-details-info">
+
+          <span className="product-details-category">
+            {product.gender} / {product.category}
           </span>
 
           <h1>
-            {searchQuery
-              ? `Search: ${searchQuery}`
-              : "All Products"}
+            {product.name}
           </h1>
 
-          <p>
-            Discover our latest sportswear collection.
+          <div className="product-details-price">
+            {Number(product.price).toFixed(2)} TND
+          </div>
+
+          <p className="product-details-description">
+            {product.description}
           </p>
 
-        </div>
+          {/* STOCK */}
 
-      </section>
+          <div className="stock-info">
+            {product.stock > 0 ? (
+              <>
+                <span className="stock-dot"></span>
 
+                <span>
+                  In stock — {product.stock} available
+                </span>
+              </>
+            ) : (
+              <span>
+                Out of stock
+              </span>
+            )}
+          </div>
 
-      {/* FILTER BAR */}
-      <section className="products-toolbar">
+          {/* QUANTITY */}
 
-        <div className="category-filters">
+          {product.stock > 0 && (
+            <div className="quantity-section">
 
-          {[
-            "All",
-            "Men",
-            "Women",
-            "Kids",
-            "Shoes",
-            "Clothing",
-          ].map((item) => (
+              <span className="quantity-label">
+                Quantity
+              </span>
 
-            <button
-              key={item}
-              className={
-                selectedCategory === item
-                  ? "filter-button active"
-                  : "filter-button"
-              }
-              onClick={() =>
-                setSelectedCategory(item)
-              }
-            >
-              {item}
-            </button>
+              <div className="quantity-control">
 
-          ))}
+                <button
+                  type="button"
+                  onClick={decreaseQuantity}
+                  disabled={quantity <= 1}
+                >
+                  −
+                </button>
 
-        </div>
+                <span>
+                  {quantity}
+                </span>
 
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="sort-select"
-        >
-          <option value="default">
-            Sort by
-          </option>
+                <button
+                  type="button"
+                  onClick={increaseQuantity}
+                  disabled={
+                    quantity >= product.stock
+                  }
+                >
+                  +
+                </button>
 
-          <option value="price-low">
-            Price: Low to High
-          </option>
+              </div>
 
-          <option value="price-high">
-            Price: High to Low
-          </option>
+            </div>
+          )}
 
-          <option value="name">
-            Name
-          </option>
-        </select>
+          {/* ADD TO CART */}
 
-      </section>
+          <button
+            type="button"
+            className="details-add-button"
+            onClick={handleAddToCart}
+            disabled={product.stock === 0}
+          >
+            {product.stock > 0
+              ? "ADD TO BAG"
+              : "SOLD OUT"}
+          </button>
 
+          {/* BENEFITS */}
 
-      {/* PRODUCTS */}
-      <section className="products-container">
+          <div className="product-info-list">
 
-        <div className="products-result-count">
-          {filteredProducts.length} products
-        </div>
+            <div>
+              <strong>
+                FREE DELIVERY
+              </strong>
 
-        {filteredProducts.length > 0 ? (
+              <span>
+                Available across Tunisia.
+              </span>
+            </div>
 
-          <div className="products-grid">
+            <div>
+              <strong>
+                SECURE PAYMENT
+              </strong>
 
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-              />
-            ))}
+              <span>
+                Your payment information is protected.
+              </span>
+            </div>
+
+            <div>
+              <strong>
+                EASY RETURNS
+              </strong>
+
+              <span>
+                Simple return process.
+              </span>
+            </div>
 
           </div>
 
-        ) : (
-
-          <div className="empty-products">
-
-            <h2>
-              No products found.
-            </h2>
-
-            <p>
-              Try another search or category.
-            </p>
-
-          </div>
-
-        )}
-
-      </section>
-
+        </div>
+      </div>
     </main>
   );
 }
 
-export default Products;
+export default ProductDetails;
+

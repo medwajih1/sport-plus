@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../redux/cartSlice";
@@ -9,10 +10,14 @@ function ProductCard({ product }) {
     return null;
   }
 
+  // Use MongoDB ID, with fallback for older local products
+  const productId = product._id || product.id;
+
   const handleAddToCart = () => {
     dispatch(
       addToCart({
         ...product,
+        id: productId,
         quantity: 1,
       })
     );
@@ -20,11 +25,9 @@ function ProductCard({ product }) {
 
   return (
     <article className="product-card">
-
       {/* IMAGE */}
       <div className="product-image-container">
-
-        <Link to={`/products/${product.id}`}>
+        <Link to={`/products/${productId}`}>
           <img
             src={product.image}
             alt={product.name}
@@ -58,13 +61,12 @@ function ProductCard({ product }) {
 
       {/* INFORMATION */}
       <div className="product-info">
-
         <div className="product-category">
           {product.gender} · {product.category}
         </div>
 
         <Link
-          to={`/products/${product.id}`}
+          to={`/products/${productId}`}
           className="product-name"
         >
           {product.name}
@@ -75,20 +77,17 @@ function ProductCard({ product }) {
         </p>
 
         <div className="product-bottom">
-
           <strong className="product-price">
             {product.price} TND
           </strong>
 
           <Link
-            to={`/products/${product.id}`}
+            to={`/products/${productId}`}
             className="view-product"
           >
             View →
           </Link>
-
         </div>
-
       </div>
     </article>
   );
